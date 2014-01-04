@@ -49,7 +49,7 @@ $(function () {
         });
     };
 
-    var findEvents = function (data) {
+    var findEvents = function (calendarData) {
         console.log("Find events for free spots.");
         var now = new Date();
         var weekLater = new Date();
@@ -62,17 +62,68 @@ $(function () {
                 app_key: config.eventbriteApiKey,
                 city: "San Francisco",
                 within: 15,
-                max: 100,
+                max: 10,
                 date: (now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDate() + " "
                  + weekLater.getFullYear() + "-" + (weekLater.getMonth() + 1) + "-" + weekLater.getDate())
             },
-            success: function (msg) {
+            success: function (eventData) {
                 console.log("Events found");
+                displayEvents(calendarData, eventData);
             }
         });
     };
 
+    var displayEvents = function (calendarData, eventData) {
+        console.log("Events displaying");
+        $("#event-left").empty();
+        $("#event-right").empty();
+        var added = 0;
+        var events = eventData.contents.events;
+        for (var i = 0 ; i < events.length ; i++) {
+            var item = events[i];
+            if (item.event != undefined) {
+                if (isEventInFreeTime(calendarData, item.event)) {
+                    console.log("Some event:");
+                    //console.log(item.event);
+                    var text = "<h4>" + item.event.title + "</h4>" + "<p>" + item.event.start_date + "</p>" + 
+                    "<p>" + item.event.end_date + "</p>";
+                    if (added % 2 == 0) {
+                        $("#event-left").append(text);
+                    } else {
+                        $("#event-right").append(text);
+                    }
+                    added += 1;
+                }
+            }
+        }
+    };
 
+    var calendarToBusyPairs = function (calendarData) {
+        var busy = [];
+        for (var key in calendarData.calendars) {
+            var calendar = calendarData.calendars[key];
+            for (var i = 0; i < calendar.busy.length; i++) {
+                var range = calendar.busy[i];
+                busy.push([new Date(range.start), new Date(range.end)]);
+            }
+        }
+        return busy;
+    }
+
+    var isEventInFreeTime = function (calendarData, event) {
+        var busy = calendarToBusyPairs(calendarData);
+        var eventStart = new Date(event.start_date);
+        var eventEnd = new Date(event.end_date);
+        for (var i = 0; i < busy.length; i++) {
+            var start = busy[i][0];
+            var end = busy[i][1];
+            if (!(end < eventStart || eventEnd < start)) {
+                //console.log("Collision: " + start + " " + end + " with " + eventStart + " " + eventEnd);
+                return false; 
+            } 
+        } 
+        return true;
+    }
 });
 
 
