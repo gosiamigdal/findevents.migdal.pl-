@@ -59,8 +59,10 @@ $(function () {
             url: "https://developer.eventbrite.com/json/event_search",
             dataType: "jsonp",
             data: {
-                app_key: config.eventbriteApiKey,//,
-                //max: 100,
+                app_key: config.eventbriteApiKey,
+                city: "San Francisco",
+                within: 15,
+                max: 100,
                 date: (now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDate() + " "
                  + weekLater.getFullYear() + "-" + (weekLater.getMonth() + 1) + "-" + weekLater.getDate())
             },
