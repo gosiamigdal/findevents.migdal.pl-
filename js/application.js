@@ -51,14 +51,18 @@ $(function () {
 
     var findEvents = function (data) {
         console.log("Find events for free spots.");
+        var now = new Date();
+        var weekLater = new Date();
+        weekLater.setDate(now.getDate() + 7);
         $.ajax({
             type: "GET",
             url: "https://developer.eventbrite.com/json/event_search",
             dataType: "jsonp",
             data: {
-                app_key: config.eventbriteApiKey//,
+                app_key: config.eventbriteApiKey,//,
                 //max: 100,
-                //date: "Next week"
+                date: (now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDate() + " "
+                 + weekLater.getFullYear() + "-" + (weekLater.getMonth() + 1) + "-" + weekLater.getDate())
             },
             success: function (msg) {
                 console.log("Events found");
