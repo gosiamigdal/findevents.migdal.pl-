@@ -60,9 +60,9 @@ $(function () {
             dataType: "jsonp",
             data: {
                 app_key: config.eventbriteApiKey,
-                city: "San Francisco",
-                within: 15,
-                max: 10,
+                city: $("#city").val(),
+                within: $("#miles").val(),
+                max: 100,
                 date: (now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDate() + " "
                  + weekLater.getFullYear() + "-" + (weekLater.getMonth() + 1) + "-" + weekLater.getDate())
             },
@@ -72,7 +72,6 @@ $(function () {
             }
         });
     };
-
     var displayEvents = function (calendarData, eventData) {
         console.log("Events displaying");
         $("#event-left").empty();
@@ -84,9 +83,13 @@ $(function () {
             if (item.event != undefined) {
                 if (isEventInFreeTime(calendarData, item.event)) {
                     console.log("Some event:");
-                    //console.log(item.event);
-                    var text = "<h4>" + item.event.title + "</h4>" + "<p>" + item.event.start_date + "</p>" + 
-                    "<p>" + item.event.end_date + "</p>";
+                    var startDate = new Date(item.event.start_date);
+                    var date = startDate.toDateString();
+                    var time = startDate.toLocaleTimeString();
+                    var url = item.event.url;
+                    var text = "<h4>" + "<a class='event-link' href=" + url + ">" + item.event.title + "</a>" + "</h4>" + "<h3>" + "Category: " + item.event.category + "</h3>" +
+                    "<p>" + "Where? " + item.event.venue.address + ", " + item.event.venue.city + "</p>" +  
+                    "<p>" + "When? " + date + ", " + time + "</p>" + "<br>";
                     if (added % 2 == 0) {
                         $("#event-left").append(text);
                     } else {
@@ -96,6 +99,9 @@ $(function () {
                 }
             }
         }
+        $('a.event-link').click(function() {
+            $(this).attr('target', '_blank');
+        });
     };
 
     var calendarToBusyPairs = function (calendarData) {
