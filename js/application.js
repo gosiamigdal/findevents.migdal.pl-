@@ -8,6 +8,7 @@ $(function () {
 
     $("#find-events").click(function (event) {
         console.log("Finding events");
+        $(this).addClass("active");
         gapi.client.setApiKey(config.googleApiKey);
         gapi.auth.authorize(
             {client_id: config.googleClientId, scope: config.googleScope},
@@ -37,6 +38,8 @@ $(function () {
         var now = new Date();
         var weekLater = new Date();
         weekLater.setDate(now.getDate() + 7);
+        $("#event-left").empty();
+        $("#event-right").empty();
         gapi.client.request({
             path: "calendar/v3/freeBusy",
             method: "POST",
@@ -45,15 +48,20 @@ $(function () {
                 timeMax: weekLater.toISOString(),
                 items: [{id: primaryId}]
             },
-            callback: findEvents
+            callback: findEventsFirst
         });
     };
 
-    var findEvents = function (calendarData) {
+    var findEventsFirst = function(calendarData) {
+        findEvents(calendarData, 1, 0);
+    }
+
+    var findEvents = function (calendarData, pageNum, added) {
         console.log("Find events for free spots.");
         var now = new Date();
         var weekLater = new Date();
         weekLater.setDate(now.getDate() + 7);
+        var perPage = 25;
         $.ajax({
             type: "GET",
             url: "https://developer.eventbrite.com/json/event_search",
@@ -62,27 +70,72 @@ $(function () {
                 app_key: config.eventbriteApiKey,
                 city: $("#city").val(),
                 within: $("#miles").val(),
-                max: 100,
+                display: "repeat_schedule",
+                max: perPage,
+                page: pageNum,
                 date: (now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDate() + " "
                  + weekLater.getFullYear() + "-" + (weekLater.getMonth() + 1) + "-" + weekLater.getDate())
             },
             success: function (eventData) {
                 console.log("Events found");
-                displayEvents(calendarData, eventData);
+                fixEventDate(eventData, now, weekLater);
+                added = displayEvents(calendarData, eventData, added);
+                if (eventData.contents.events[0].summary.total_items > pageNum * perPage) {
+                    findEvents(calendarData, pageNum + 1, added);
+                } else {
+                    $("#events-sum").html("Found " + added + " events.");
+                    $("#find-events").removeClass("active");
+                }
             }
         });
     };
-    var displayEvents = function (calendarData, eventData) {
+
+    var fixEventDate = function (eventData, startDate, endDate) {
+        // Eventbrite API return start_date of first event if recurring, not the current one!
+        var events = eventData.contents.events;
+        for (var i = 0; i < events.length ; i++) {
+            var item = events[i];
+            if (item.event != undefined) {
+                var eventStartDate = new Date(item.event.start_date);
+                if (eventStartDate < startDate || endDate < eventStartDate) {
+                    if (item.event.repeat_schedule == undefined) {
+                        console.log("Start date doesn't match but event is not repeating!")
+                        console.log(item.event);
+                        events.splice(i, 1);
+                        i--;
+                    } else {
+                        // fix date
+                        for (var j = 0; j < item.event.repeat_schedule.length; j++) {
+                            var schedule = item.event.repeat_schedule[j];
+                            var date = new Date(schedule.start_date);
+                            var fixed = false;
+                            if (startDate < date && date < endDate) {
+                                item.event.start_date = schedule.start_date;
+                                item.event.end_date = schedule.end_date;
+                                fixed = true;
+                                break;
+                            } 
+                        }
+
+                        if (!fixed) {
+                            console.log("Can't fix date for repeated event:")
+                            console.log(item.event);
+                            events.splice(i, 1);
+                            i--; 
+                        }
+                    }
+                }
+            }
+        } 
+    }
+
+    var displayEvents = function (calendarData, eventData, added) {
         console.log("Events displaying");
-        $("#event-left").empty();
-        $("#event-right").empty();
-        var added = 0;
         var events = eventData.contents.events;
         for (var i = 0 ; i < events.length ; i++) {
             var item = events[i];
             if (item.event != undefined) {
                 if (isEventInFreeTime(calendarData, item.event)) {
-                    console.log("Some event:");
                     var startDate = new Date(item.event.start_date);
                     var date = startDate.toDateString();
                     var time = startDate.toLocaleTimeString();
@@ -102,6 +155,7 @@ $(function () {
         $('a.event-link').click(function() {
             $(this).attr('target', '_blank');
         });
+        return added;
     };
 
     var calendarToBusyPairs = function (calendarData) {

@@ -25,7 +25,8 @@
     <p>Please allow us access your Google Calendar. We will show you all events in next 7 days which doesn't overlap with your schedule.</p>
     <p><label for="city">City</label> <input type="text" value="San Francisco" name="city" id="city"/></p>
     <p><label for="miles">Within</label> <input type="number" value="10" name="miles" id="miles"/> miles</p>
-    <p><a class="btn btn-lg btn-success" id="find-events" href="#" role="button">Find events</a></p>
+    <p><a class="btn btn-lg btn-success has-spinner" id="find-events" href="#" role="button"><span class="spinner"><i class="glyphicon-spin glyphicon glyphicon-refresh"></i></span> Find events</a></p>
+    <p id="events-sum"></p>
 </div>
 
 <div class="row marketing">
